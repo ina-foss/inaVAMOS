@@ -1,0 +1,4 @@
+pyannote.metrics
+pandas
+numpy
+scipy

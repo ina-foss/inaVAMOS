@@ -1,0 +1,66 @@
+{
+  "inavamos": {
+    "InaGVAD": {
+      "accuracy": 0.9653420342439504,
+      "precision": 0.9797637460651767,
+      "recall": 0.961983377842462,
+      "fmeasure": 0.9707921555002593
+    },
+    "Mirex2015": {
+      "precision": 0.9840621263653987,
+      "recall": 0.9475713830625555,
+      "fmeasure": 0.9654720789925489
+    },
+    "OpenBMAT": {
+      "precision": 0.8878656666143842,
+      "recall": 0.9102597899010136,
+      "fmeasure": 0.8989232783778366
+    },
+    "Seyerlehner": {
+      "precision": 0.9401398825514427,
+      "recall": 0.9052118076827083,
+      "fmeasure": 0.9223452928379375
+    },
+    "global_music_f1": 0.9289135500694411
+  },
+  "inaspeechsegmenter": {
+    "InaGVAD": {
+      "accuracy": 0.9298090075738545,
+      "precision": 0.9176652161599421,
+      "recall": 0.969777616840815,
+      "fmeasure": 0.9430020033724041
+    },
+    "Mirex2015": {
+      "precision": 0.9917813822104631,
+      "recall": 0.8673160862688553,
+      "fmeasure": 0.9253823012912824
+    },
+    "OpenBMAT": {
+      "precision": 0.9398395500785708,
+      "recall": 0.2995584494325746,
+      "fmeasure": 0.4543123007266294
+    },
+    "Seyerlehner": {
+      "precision": 0.9980736480638767,
+      "recall": 0.4866925328432374,
+      "fmeasure": 0.654318502113952
+    },
+    "global_music_f1": 0.6780043680439546
+  },
+  "pyannote": {
+    "InaGVAD": {
+      "accuracy": 0.8635057571903588,
+      "precision": 0.8200366865102365,
+      "recall": 0.9890913522302728,
+      "fmeasure": 0.8966653302256185
+    }
+  },
+  "pyannote-legacy": {
+    "InaGVAD": {
+      "accuracy": 0.8880720875414472,
+      "precision": 0.8496235225041467,
+      "recall": 0.9879104617923657,
+      "fmeasure": 0.9135634754402306
+    }
+  }
+}

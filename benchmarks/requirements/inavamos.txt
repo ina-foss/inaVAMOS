@@ -1,0 +1,3 @@
+# Python >= 3.10
+inaVAMOS>=0.1.1  # 0.1.0 feeds the VAD classifier the wrong first-layer features
+scipy
