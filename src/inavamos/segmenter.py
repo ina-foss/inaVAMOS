@@ -181,6 +181,7 @@ class Segmenter:
                 repo_id=repo_ids.get(name, spec.repo_id),
                 transition=transitions.get(name, spec.transition),
                 invert=spec.invert,
+                first_layer=spec.first_layer,
                 layout=spec.layout,
             )
 
@@ -291,6 +292,15 @@ class Segmenter:
             return {name: np.zeros(0, dtype=np.float32) for name in names}
         probs = {name: np.zeros(n_frames, dtype=np.float32) for name in names}
 
+        # Capture the output of the CNN feature projection during the encoder forward pass.
+        projection = []
+        hook = encoder.feature_projection.register_forward_hook(lambda module, args, output: projection.append(output[0]))
+        try:
+            return self._windowed_probabilities(encoder, names, audio, hop, n_frames, probs, projection)
+        finally:
+            hook.remove()
+
+    def _windowed_probabilities(self, encoder, names, audio, hop, n_frames, probs, projection) -> dict:
         signal = torch.from_numpy(audio)
         windows = self._windows(len(audio), hop)
         # Batch together windows of identical length.
@@ -301,11 +311,15 @@ class Segmenter:
             for i in range(0, len(group), self.batch_size):
                 batch = group[i : i + self.batch_size]
                 inputs = torch.stack([_normalize(signal[w0:w1]) for w0, w1, _, _ in batch]).to(self.device)
+                projection.clear()
                 hidden = encoder(inputs, output_hidden_states=True).hidden_states
-                # (batch, n_layers, n_frames, dim): CNN projection + transformer layer outputs.
-                features = torch.stack(hidden, dim=1)
+                # (batch, n_layers, n_frames, dim): first layer + transformer layer outputs.
+                features = {
+                    "encoder_input": torch.stack(hidden, dim=1),
+                    "projection": torch.stack([projection[0], *hidden[1:]], dim=1),
+                }
                 for name in names:
-                    batch_probs = self._classify(name, features)
+                    batch_probs = self._classify(name, features[self.specs[name].first_layer])
                     for (w0, _, a, b), p in zip(batch, batch_probs):
                         first, last = a // hop, min(b // hop, n_frames)
                         local = (a - w0) // hop

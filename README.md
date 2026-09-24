@@ -111,9 +111,9 @@ for label, start, stop in seg("media.mp3"):
 ```python
 result = seg.process("media.mp3", start=60, stop=120)
 
-result.segments("speech")    # [Segment(label='speech', start=63.38, stop=65.3), ...]
-result.segments("music")     # segments where music is detected
-result.timeline()            # combined timeline, as returned by seg("media.mp3")
+result.segments("speech")      # [Segment(label='speech', start=63.38, stop=65.3), ...]
+result.segments("music")       # segments where music is detected
+result.timeline()              # combined timeline, as returned by seg("media.mp3")
 result.probabilities["music"]  # frame-level probabilities (numpy array, one frame every 20 ms)
 result.decisions["music"]      # frame-level boolean decisions after Viterbi smoothing
 result.frame_duration          # 0.02
@@ -146,8 +146,43 @@ Results can be exported with `inavamos.export.export(result, "textgrid")`.
 
 ## Performance
 
-About 30× faster than real time on a laptop CPU (an hour of audio in about 2 minutes),
-and much faster on a GPU.
+### Voice activity detection
+
+[InaGVAD](https://github.com/ina-foss/InaGVAD) test set (3h37 of French TV and radio),
+with the InaGVAD evaluation code (0.3 s collar):
+
+| System | Accuracy | Precision | Recall | F1 |
+|--------|----------|-----------|--------|----|
+| **inaVAMOS** | **96.5** | **98.0** | 96.2 | **97.1** |
+| [inaSpeechSegmenter](https://github.com/ina-foss/inaSpeechSegmenter) | 93.0 | 91.8 | 97.0 | 94.3 |
+| [pyannote](https://github.com/pyannote/pyannote-audio) (segmentation-3.0) | 86.4 | 82.0 | **98.9** | 89.7 |
+| pyannote 2.1 (voice-activity-detection) | 88.8 | 85.0 | 98.8 | 91.4 |
+
+### Music detection
+
+Frame-level F1 of the music class (no collar) on the test sets of
+[Mirex2015](https://www.music-ir.org/mirex/wiki/2015:Music/Speech_Classification_and_Detection),
+[OpenBMAT](https://zenodo.org/records/3381249) and
+[Seyerlehner](https://www.cp.jku.at/research/papers/Seyerlehner_etal_DAFx_2007.pdf).
+The global F1 is the average over the three datasets:
+
+| System | Mirex2015 | OpenBMAT | Seyerlehner | Global |
+|--------|-----------|----------|-------------|--------|
+| **inaVAMOS** | **96.5** | **89.9** | **92.2** | **92.9** |
+| inaSpeechSegmenter | 92.5 | 45.4 | 65.4 | 67.8 |
+
+The music model of inaVAMOS was trained on the training subsets of these datasets
+(the evaluated test subsets were held out). inaSpeechSegmenter labels speech over music
+as speech only, which lowers its music recall on datasets with background music.
+pyannote does not detect music.
+
+These results can be reproduced with the scripts of the [`benchmarks`](https://github.com/ina-foss/inaVAMOS/blob/main/benchmarks) directory.
+
+### Speed
+
+On a laptop GPU (RTX 3080), inaVAMOS processes about 200 times faster than real time
+(the 3h37 of InaGVAD in one minute). On a laptop CPU, it is about 30 times faster than
+real time (an hour of audio in about 2 minutes).
 
 ## Development
 
@@ -172,7 +207,7 @@ License ([French version](https://github.com/ina-foss/inaVAMOS/blob/main/LICENSE
 [unofficial English translation](https://github.com/ina-foss/inaVAMOS/blob/main/LICENSE.en.md)). It restricts their use to
 non-commercial research and development activities, by research organisations and
 heritage institutions (libraries, museums, archives, audiovisual heritage). For any
-other use, contact the Pantagruel Consortium at pantagruel-licence@univ-grenoble-alpes.fr.
+question, contact the Pantagruel Consortium at pantagruel-licence@univ-grenoble-alpes.fr.
 
 If you use this tool or the models, please cite:
 
@@ -184,5 +219,7 @@ If you use this tool or the models, please cite:
   booktitle = "Fifteenth International Conference on Language Resources and Evaluation (LREC 2026)",
   address   = "Palma, Mallorca, Spain",
   publisher = "European Language Resources Association",
+  url       = {https://lrec.elra.info/lrec2026-main-802},
+  doi       = {10.63317/4kdn23nttrh4},
 }
 ```

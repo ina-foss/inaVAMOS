@@ -10,17 +10,29 @@ HOP = 320
 KERNEL = 400
 
 
+class FakeProjection(torch.nn.Module):
+    """Returns twice its input, to tell projection features from encoder inputs."""
+
+    def forward(self, x):
+        return 2 * x, x
+
+
 class FakeEncoder(torch.nn.Module):
     """Frame-wise encoder: each frame is the mean of the samples in its receptive field."""
 
     class config:
         conv_stride = [5, 2, 2, 2, 2, 2, 2]
 
+    def __init__(self):
+        super().__init__()
+        self.feature_projection = FakeProjection()
+
     def _get_feat_extract_output_lengths(self, n):
         return (n - KERNEL) // HOP + 1
 
     def forward(self, x, output_hidden_states=True):
         frames = x.unfold(1, KERNEL, HOP).mean(-1)  # (batch, n_frames)
+        self.feature_projection(frames[..., None].expand(-1, -1, 4))
         hidden = frames[..., None].expand(-1, -1, 4)
 
         class Output:
@@ -29,19 +41,29 @@ class FakeEncoder(torch.nn.Module):
         return Output()
 
 
-def fake_segmenter(monkeypatch, window_duration, context_duration=2.5, batch_size=3):
+def fake_segmenter(monkeypatch, window_duration, context_duration=2.5, batch_size=3, detectors=("music",)):
     monkeypatch.setattr(segmenter_module, "_normalize", lambda x: x)
     seg = Segmenter.__new__(Segmenter)
     seg.device = torch.device("cpu")
     seg.window_duration = window_duration
     seg.context_duration = context_duration
     seg.batch_size = batch_size
-    seg.specs = {"music": DETECTORS["music"]}
+    seg.specs = {name: DETECTORS[name] for name in detectors}
     seg.encoders = {"enc": FakeEncoder()}
-    seg.groups = {"enc": ["music"]}
-    # (batch, n_layers, n_frames, dim) -> (batch, n_frames)
-    seg.classifiers = {"music": lambda f: f[:, 0, :, 0]}
+    seg.groups = {"enc": list(detectors)}
+    # (batch, n_layers, n_frames, dim) -> (batch, n_frames): the first layer only.
+    seg.classifiers = {name: lambda f: f[:, 0, :, 0] for name in detectors}
     return seg
+
+
+def test_first_layer_features(monkeypatch):
+    """The VAD classifier gets the CNN projection, the music classifier the encoder input."""
+    audio = np.random.default_rng(0).uniform(-3, 3, 16000 * 40).astype(np.float32)
+    result = fake_segmenter(monkeypatch, 30.0, detectors=("speech", "music")).process_audio(audio)
+    logits = {
+        name: np.log(p / (1 - p)) * (-1 if DETECTORS[name].invert else 1) for name, p in result.probabilities.items()
+    }
+    np.testing.assert_allclose(logits["speech"], 2 * logits["music"], rtol=1e-3, atol=1e-3)
 
 
 @pytest.mark.parametrize("n_samples", [16000 * 100, 16000 * 100 + 123, 16000 * 61, 16000 * 30, 16000 * 12, 16000])

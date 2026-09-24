@@ -8,3 +8,4 @@ build/
 # Maintenance script, not part of the package
 convert_pt2_to_safetensors.py
 converted/
+hf_fixes/

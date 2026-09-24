@@ -40,6 +40,9 @@ Issues = "https://github.com/ina-foss/inaVAMOS/issues"
 "VAD model" = "https://huggingface.co/ina-foss/ssl-vad-music2vec"
 "Music detection model" = "https://huggingface.co/ina-foss/ssl-music-detection-music2vec"
 
+[tool.hatch.build.targets.sdist]
+exclude = ["benchmarks"]
+
 [tool.hatch.version]
 path = "src/inavamos/__init__.py"
 

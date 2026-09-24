@@ -28,6 +28,10 @@ class DetectorSpec:
     transition: float
     # The VAD classifier outputs the probability of *non*-speech.
     invert: bool
+    # First layer of features given to the classifier, with the transformer layer:
+    # "encoder_input": input of the transformer layers (after the positional convolution
+    # and layer norm), "projection": output of the CNN feature projection.
+    first_layer: str
     # Input layout of the torch.export classifier (classifier/model.pt2), if used:
     # "frames": (n_frames, n_layers, dim), "batch": (batch, n_layers, n_frames, dim).
     layout: str
@@ -39,6 +43,8 @@ DETECTORS = {
         repo_id="ina-foss/ssl-vad-music2vec",
         transition=0.99,
         invert=True,
+        # The VAD classifier was trained on the projection of the CNN features.
+        first_layer="projection",
         layout="frames",
     ),
     "music": DetectorSpec(
@@ -46,6 +52,7 @@ DETECTORS = {
         repo_id="ina-foss/ssl-music-detection-music2vec",
         transition=0.95,
         invert=False,
+        first_layer="encoder_input",
         layout="batch",
     ),
 }
