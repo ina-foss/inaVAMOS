@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "inaVAMOS"
+dynamic = ["version"]
+description = "Voice And Music Open Segmenter: speech (voice activity) and music detection in audio and video files, based on SSL models from INA"
+readme = "README.md"
+requires-python = ">=3.10"
+# French version (LICENSE.md) is authoritative; LICENSE.en.md is an unofficial translation.
+license = "LicenseRef-Pantagruel-Research-License"
+license-files = ["LICENSE.md", "LICENSE.en.md"]
+authors = [{ name = "Valentin Pelloin", email = "vpelloin@ina.fr" }]
+keywords = ["voice activity detection", "VAD", "music detection", "speech", "audio segmentation", "self-supervised learning"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy",
+    "torch>=2.2",
+    "transformers>=4.40",
+    "huggingface-hub>=0.23",
+    "librosa>=0.10",
+    "safetensors",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+ina-vamos = "inavamos.cli:main"
+
+[project.urls]
+"VAD model" = "https://huggingface.co/ina-foss/ssl-vad-music2vec"
+"Music detection model" = "https://huggingface.co/ina-foss/ssl-music-detection-music2vec"
+
+[tool.hatch.version]
+path = "src/inavamos/__init__.py"
+
+[tool.pytest.ini_options]
+markers = ["models: tests downloading and running the models from the HuggingFace Hub"]
