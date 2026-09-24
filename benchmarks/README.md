@@ -83,6 +83,11 @@ DATA="--inagvad-dir /data/inaGVAD --openbmat-dir /data/OpenBMAT --seyerlehner-di
 pyannote only detects speech: it is only evaluated on InaGVAD. Systems are used with their
 default settings; pyannote (segmentation-3.0) uses the VAD hyper-parameters of its model card.
 
+Each `info.json` records the package versions and the processing time (audio decoding
+included, model loading excluded). The speed table of the main README was measured on
+the InaGVAD test set with a local copy of the audio, running the systems one after the
+other with `--overwrite`, and keeping the best of two runs.
+
 Then evaluate all the predictions and print the result tables:
 
 ```bash

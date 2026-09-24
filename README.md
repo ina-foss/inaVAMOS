@@ -155,8 +155,8 @@ with the InaGVAD evaluation code (0.3 s collar):
 |--------|----------|-----------|--------|----|
 | **inaVAMOS** | **96.5** | **98.0** | 96.2 | **97.1** |
 | [inaSpeechSegmenter](https://github.com/ina-foss/inaSpeechSegmenter) | 93.0 | 91.8 | 97.0 | 94.3 |
-| [pyannote](https://github.com/pyannote/pyannote-audio) (segmentation-3.0) | 86.4 | 82.0 | **98.9** | 89.7 |
-| pyannote 2.1 (voice-activity-detection) | 88.8 | 85.0 | 98.8 | 91.4 |
+| [pyannote (segmentation-3.0)](https://github.com/pyannote/pyannote-audio) | 86.4 | 82.0 | **98.9** | 89.7 |
+| [pyannote 2.1 (voice-activity-detection)](https://huggingface.co/pyannote/voice-activity-detection) | 88.8 | 85.0 | 98.8 | 91.4 |
 
 ### Music detection
 
@@ -180,9 +180,16 @@ These results can be reproduced with the scripts of the [`benchmarks`](https://g
 
 ### Speed
 
-On a laptop GPU (RTX 3080), inaVAMOS processes about 200 times faster than real time
-(the 3h37 of InaGVAD in one minute). On a laptop CPU, it is about 30 times faster than
-real time (an hour of audio in about 2 minutes).
+Processing time of the InaGVAD test set (3h37 of audio, 217 files of one minute) on a
+laptop GPU (NVIDIA RTX 3080 Laptop, Intel Core i9-11950H), including audio decoding and
+excluding model loading (best of two runs):
+
+| System | Total | Per hour of audio | RTF |
+|--------|-------|-------------------|-----------------------|
+| **inaVAMOS** (speech + music) | 53 s | 14 s | 249× |
+| inaSpeechSegmenter | 264 s | 72 s | 50× |
+| pyannote (segmentation-3.0, speech only) | 38 s | 10 s | 345× |
+| pyannote 2.1 (voice-activity-detection, speech only) | 41 s | 11 s | 324× |
 
 ## Development
 
@@ -204,9 +211,7 @@ and uploads it to PyPI.
 
 inaVAMOS and the models it uses are distributed under the Pantagruel Research-only
 License ([French version](https://github.com/ina-foss/inaVAMOS/blob/main/LICENSE.md), which prevails, and
-[unofficial English translation](https://github.com/ina-foss/inaVAMOS/blob/main/LICENSE.en.md)). It restricts their use to
-non-commercial research and development activities, by research organisations and
-heritage institutions (libraries, museums, archives, audiovisual heritage). For any
+[unofficial English translation](https://github.com/ina-foss/inaVAMOS/blob/main/LICENSE.en.md)). For any
 question, contact the Pantagruel Consortium at pantagruel-licence@univ-grenoble-alpes.fr.
 
 If you use this tool or the models, please cite:
