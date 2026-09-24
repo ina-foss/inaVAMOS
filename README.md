@@ -40,8 +40,11 @@ The segments of each detector are also available separately (see
 ## Installation
 
 ```bash
-pip install git+https://github.com/ina-foss/inaVAMOS.git
+pip install inaVAMOS
 ```
+
+The development version can be installed with
+`pip install git+https://github.com/ina-foss/inaVAMOS.git`.
 
 [ffmpeg](https://ffmpeg.org) is recommended to read any audio or video format
 (`apt install ffmpeg`, `brew install ffmpeg` or `conda install ffmpeg`). Without it,
@@ -159,14 +162,14 @@ reference code published on the model cards.
 
 To release a new version: update `__version__` in `src/inavamos/__init__.py`, then
 publish a GitHub release tagged `v<version>` (e.g. `v0.2.0`). The
-[publish workflow](.github/workflows/publish.yml) runs the tests, builds the package
+[publish workflow](https://github.com/ina-foss/inaVAMOS/blob/main/.github/workflows/publish.yml) runs the tests, builds the package
 and uploads it to PyPI.
 
 ## License and citation
 
 inaVAMOS and the models it uses are distributed under the Pantagruel Research-only
-License ([French version](LICENSE.md), which prevails, and
-[unofficial English translation](LICENSE.en.md)). It restricts their use to
+License ([French version](https://github.com/ina-foss/inaVAMOS/blob/main/LICENSE.md), which prevails, and
+[unofficial English translation](https://github.com/ina-foss/inaVAMOS/blob/main/LICENSE.en.md)). It restricts their use to
 non-commercial research and development activities, by research organisations and
 heritage institutions (libraries, museums, archives, audiovisual heritage). For any
 other use, contact the Pantagruel Consortium at pantagruel-licence@univ-grenoble-alpes.fr.

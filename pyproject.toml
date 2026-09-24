@@ -35,6 +35,8 @@ test = ["pytest"]
 ina-vamos = "inavamos.cli:main"
 
 [project.urls]
+Homepage = "https://github.com/ina-foss/inaVAMOS"
+Issues = "https://github.com/ina-foss/inaVAMOS/issues"
 "VAD model" = "https://huggingface.co/ina-foss/ssl-vad-music2vec"
 "Music detection model" = "https://huggingface.co/ina-foss/ssl-music-detection-music2vec"
 
