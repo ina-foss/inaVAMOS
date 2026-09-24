@@ -1,0 +1,3 @@
+# Python 3.12
+silero-vad==6.2.3
+scipy

@@ -1,0 +1,5 @@
+# Python 3.11. tensorflow-hub needs pkg_resources, removed from recent setuptools.
+tensorflow==2.21.0
+tensorflow-hub==0.16.1
+setuptools<80
+scipy

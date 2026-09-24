@@ -46,10 +46,10 @@ def merge_segments(segments):
     return [tuple(s) for s in merged]
 
 
-def read_split(name: str) -> dict:
-    """Test regions of a music dataset: {file: [(start, stop), ...]}."""
+def read_split(name: str, subset: str = "test") -> dict:
+    """Test (or dev) regions of a music dataset: {file: [(start, stop), ...]}."""
     regions = {}
-    with open(SPLITS_DIR / f"{name}_test.csv") as f:
+    with open(SPLITS_DIR / f"{name}_{subset}.csv") as f:
         for row in csv.DictReader(f):
             regions.setdefault(row["file"], []).append((float(row["start"]), float(row["stop"])))
     return regions
@@ -88,10 +88,24 @@ class Dataset:
     task: str  # "speech" or "music"
 
     def items(self) -> list[Item]:
+        """Files of the dataset, with their evaluation regions and references (cached)."""
+        if not hasattr(self, "_items"):
+            self._items = self._load_items()
+        return self._items
+
+    def _load_items(self) -> list[Item]:
         raise NotImplementedError
 
     def audio(self, uri: str) -> Path:
         raise NotImplementedError
+
+    def _set_subset(self, subset: str):
+        """Music datasets: evaluate the test regions, or the dev regions (threshold tuning)."""
+        if subset not in ("test", "dev"):
+            raise ValueError(f"Unknown subset {subset!r}")
+        self.subset = subset
+        if subset != "test":
+            self.name = f"{type(self).name}-{subset}"
 
 
 class InaGVAD(Dataset):
@@ -113,7 +127,7 @@ class InaGVAD(Dataset):
                 subprocess.run(["git", "clone", "-q", "--depth", "1", INAGVAD_REPO, str(repo_dir)], check=True)
         self.repo_dir = Path(repo_dir)
 
-    def items(self):
+    def _load_items(self):
         with open(self.repo_dir / "annotations" / "filesplit" / "testset.csv") as f:
             uris = [row["fileid"] for row in csv.DictReader(f)]
         return [Item(uri) for uri in uris]
@@ -131,7 +145,8 @@ class Mirex2015(Dataset):
     name = "Mirex2015"
     task = "music"
 
-    def __init__(self, root=None):
+    def __init__(self, root=None, subset="test"):
+        self._set_subset(subset)
         if root is None:
             archive = CACHE_DIR / "muspeak-mirex2015-detection-examples.zip"
             root = CACHE_DIR / "Mirex2015"
@@ -148,9 +163,9 @@ class Mirex2015(Dataset):
                 return candidate
         raise FileNotFoundError(f"No annotation for {stem} in {self.root}")
 
-    def items(self):
+    def _load_items(self):
         items = []
-        for stem, uem in read_split("mirex2015").items():
+        for stem, uem in read_split("mirex2015", self.subset).items():
             music = []
             with open(self._annotation(stem), encoding="utf-8-sig") as f:
                 for row in csv.reader(f):
@@ -174,14 +189,15 @@ class OpenBMAT(Dataset):
     name = "OpenBMAT"
     task = "music"
 
-    def __init__(self, root=None):
+    def __init__(self, root=None, subset="test"):
+        self._set_subset(subset)
         self.root = _require_dir(root, "OpenBMAT", "--openbmat-dir", "https://zenodo.org/records/3381249")
 
-    def items(self):
+    def _load_items(self):
         annotations = self.root / "annotations" / "tsv" / "MD_mapping"
         annotators = sorted(p for p in annotations.iterdir() if p.is_dir())
         items = []
-        for stem, uem in read_split("openbmat").items():
+        for stem, uem in read_split("openbmat", self.subset).items():
             music = []
             for annotator in annotators:
                 with open(annotator / f"{stem}.tsv") as f:
@@ -206,7 +222,8 @@ class Seyerlehner(Dataset):
     name = "Seyerlehner"
     task = "music"
 
-    def __init__(self, root=None):
+    def __init__(self, root=None, subset="test"):
+        self._set_subset(subset)
         if root is not None and str(root).endswith((".tgz", ".tar.gz")):
             archive, root = Path(root), CACHE_DIR / "Seyerlehner"
             if not root.exists():
@@ -226,9 +243,9 @@ class Seyerlehner(Dataset):
                 return int(mat["fs"].ravel()[0]), mat["data"].ravel()
         raise FileNotFoundError(f"No annotation for {stem} in {self.root}")
 
-    def items(self):
+    def _load_items(self):
         items = []
-        for stem, uem in read_split("seyerlehner").items():
+        for stem, uem in read_split("seyerlehner", self.subset).items():
             fs, frames = self._labels(stem)
             music, start = [], None
             for i, value in enumerate(list(frames) + [0]):
@@ -256,13 +273,15 @@ def add_dataset_arguments(parser):
     group.add_argument("--seyerlehner-dir", type=Path, help="Seyerlehner dataset directory, or its original .tgz archive")
 
 
-def load_dataset(name: str, args) -> Dataset:
+def load_dataset(name: str, args, subset: str = "test") -> Dataset:
     if name == "inagvad":
+        if subset != "test":
+            raise ValueError("Only the InaGVAD test set is evaluated")
         return InaGVAD(args.inagvad_dir, args.inagvad_repo)
     if name == "mirex2015":
-        return Mirex2015(args.mirex2015_dir)
+        return Mirex2015(args.mirex2015_dir, subset)
     if name == "openbmat":
-        return OpenBMAT(args.openbmat_dir)
+        return OpenBMAT(args.openbmat_dir, subset)
     if name == "seyerlehner":
-        return Seyerlehner(args.seyerlehner_dir)
+        return Seyerlehner(args.seyerlehner_dir, subset)
     raise ValueError(f"Unknown dataset {name!r}. Available: {', '.join(DATASETS)}")

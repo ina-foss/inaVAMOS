@@ -1,0 +1,3 @@
+# Python 3.12. The CNN14 checkpoint (~300 MB) is downloaded with wget to ~/panns_data.
+panns-inference==0.1.1
+scipy

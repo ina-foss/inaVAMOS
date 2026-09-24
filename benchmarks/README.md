@@ -1,8 +1,17 @@
 # Benchmarks
 
-Scripts to evaluate inaVAMOS, [inaSpeechSegmenter](https://github.com/ina-foss/inaSpeechSegmenter)
-and [pyannote](https://github.com/pyannote/pyannote-audio) on voice activity detection
-(VAD) and music detection.
+Scripts to evaluate inaVAMOS and other freely available systems on voice activity
+detection (VAD) and music detection:
+
+| System | Task | Setting |
+|--------|------|---------|
+| inaVAMOS | VAD, music | default settings |
+| [inaSpeechSegmenter](https://github.com/ina-foss/inaSpeechSegmenter) | VAD, music | default settings |
+| pyannote ([segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0)) | VAD | VAD hyper-parameters of the model card |
+| pyannote 2.1 ([voice-activity-detection](https://huggingface.co/pyannote/voice-activity-detection)) | VAD | default settings, as in the InaGVAD paper |
+| [Silero VAD](https://github.com/snakers4/silero-vad) | VAD | default settings |
+| [PANNs](https://github.com/qiuqiangkong/panns_inference) (CNN14, AudioSet) | music | "Music" class, threshold tuned on dev |
+| [YAMNet](https://www.kaggle.com/models/google/yamnet) (AudioSet) | music | "Music" class, threshold tuned on dev |
 
 | Task | Dataset | Test data | Metric |
 |------|---------|-----------|--------|
@@ -13,9 +22,9 @@ and [pyannote](https://github.com/pyannote/pyannote-audio) on voice activity det
 
 The music detection model of inaVAMOS was trained on the training subsets of Mirex2015,
 OpenBMAT and Seyerlehner: only their test subsets are evaluated. These subsets are
-listed in [`splits/`](splits) (file, start and stop of each test region, in seconds).
-They were extracted from the data used for training with
-[`extract_splits.py`](extract_splits.py).
+listed in [`splits/`](splits) (file, start and stop of each test region, in seconds),
+together with the dev subsets used to tune thresholds. They were extracted from the data
+used for training with [`extract_splits.py`](extract_splits.py).
 
 Music metrics are computed on 10 ms frames, pooled over all the test regions of a
 dataset. The *global* music F1 is the average of the F1 of the three datasets.
@@ -51,14 +60,18 @@ uv venv -p 3.10 .envs/inavamos           && uv pip install -p .envs/inavamos -r 
 uv venv -p 3.11 .envs/inaspeechsegmenter && uv pip install -p .envs/inaspeechsegmenter -r requirements/inaspeechsegmenter.txt
 uv venv -p 3.12 .envs/pyannote           && uv pip install -p .envs/pyannote -r requirements/pyannote.txt
 uv venv -p 3.10 .envs/pyannote-legacy    && uv pip install -p .envs/pyannote-legacy -r requirements/pyannote-legacy.txt --index-strategy unsafe-best-match
+uv venv -p 3.12 .envs/silero             && uv pip install -p .envs/silero -r requirements/silero.txt
+uv venv -p 3.12 .envs/panns              && uv pip install -p .envs/panns -r requirements/panns.txt
+uv venv -p 3.11 .envs/yamnet             && uv pip install -p .envs/yamnet -r requirements/yamnet.txt
 uv venv -p 3.12 .envs/eval               && uv pip install -p .envs/eval -r requirements/eval.txt
 ```
 
 To use a GPU, install the CUDA builds of the frameworks: torch from the
 [PyTorch index](https://pytorch.org/get-started/locally/) matching your CUDA version
 (for `pyannote-legacy`, replace the `cpu` index of its requirements by `cu117`), and
-`tensorflow[and-cuda]` for inaSpeechSegmenter. Then pass `--device cuda` to `predict.py`
-for inaVAMOS and pyannote (TensorFlow uses the GPU automatically).
+`tensorflow[and-cuda]` for inaSpeechSegmenter and YAMNet. Then pass `--device cuda` to
+`predict.py` for inaVAMOS, pyannote and PANNs (TensorFlow uses the GPU automatically).
+Silero VAD is designed for CPU and always runs on CPU.
 
 ffmpeg must be installed. The pyannote models are gated: accept their conditions on the
 HuggingFace Hub ([segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0) for
@@ -78,15 +91,41 @@ DATA="--inagvad-dir /data/inaGVAD --openbmat-dir /data/OpenBMAT --seyerlehner-di
 .envs/inaspeechsegmenter/bin/python predict.py inaspeechsegmenter inagvad mirex2015 openbmat seyerlehner $DATA
 .envs/pyannote/bin/python predict.py pyannote inagvad $DATA
 .envs/pyannote-legacy/bin/python predict.py pyannote-legacy inagvad $DATA
+.envs/silero/bin/python predict.py silero inagvad $DATA
+.envs/panns/bin/python predict.py panns mirex2015 openbmat seyerlehner $DATA
+.envs/yamnet/bin/python predict.py yamnet mirex2015 openbmat seyerlehner $DATA
 ```
 
-pyannote only detects speech: it is only evaluated on InaGVAD. Systems are used with their
-default settings; pyannote (segmentation-3.0) uses the VAD hyper-parameters of its model card.
+pyannote and Silero only detect speech: they are only evaluated on InaGVAD. PANNs and
+YAMNet only detect music: they are only evaluated on the music datasets. Each
+`info.json` records the package versions and the processing time.
 
-Each `info.json` records the package versions and the processing time (audio decoding
-included, model loading excluded). The speed table of the main README was measured on
-the InaGVAD test set with a local copy of the audio, running the systems one after the
-other with `--overwrite`, and keeping the best of two runs.
+### Thresholds of PANNs and YAMNet
+
+PANNs and YAMNet are audio taggers trained on AudioSet: a frame is music when the score
+of the AudioSet "Music" class exceeds a threshold. This threshold was tuned once to
+maximize the global music F1 on the **dev** subsets of the three music datasets, and is
+the default of `predict.py` (0.01 for PANNs, 0.0032 for YAMNet). To tune it again:
+
+```bash
+.envs/panns/bin/python predict.py panns mirex2015 openbmat seyerlehner --subset dev $DATA
+.envs/eval/bin/python tune_thresholds.py panns $DATA
+```
+
+PANNs processes audio by 10 s chunks (the duration of its training clips) with 10 ms
+frames. YAMNet scores 0.96 s windows every 0.48 s; each score is assigned to the central
+0.48 s of its window.
+
+### Speed
+
+[`speed.py`](speed.py) times a system on a directory of audio files (audio decoding
+included, model loading excluded), whatever the task it addresses. The speed table of
+the main README was measured on a local copy of the InaGVAD test audio, running the
+systems one after the other and keeping the best of two runs:
+
+```bash
+.envs/inavamos/bin/python speed.py inavamos /data/inaGVAD/test --device cuda
+```
 
 Then evaluate all the predictions and print the result tables:
 

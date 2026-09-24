@@ -30,6 +30,9 @@ SYSTEM_NAMES = {
     "inaspeechsegmenter": "inaSpeechSegmenter",
     "pyannote": "pyannote (segmentation-3.0)",
     "pyannote-legacy": "pyannote (voice-activity-detection, 2.1)",
+    "silero": "Silero VAD",
+    "panns": "PANNs (CNN14)",
+    "yamnet": "YAMNet",
 }
 # Labels of each system counting as speech or music.
 SPEECH_LABELS = {"speech", "male", "female"}
@@ -79,13 +82,16 @@ def _inside(times: np.ndarray, segments: list) -> np.ndarray:
     return (index >= 0) & (times < stops[np.clip(index, 0, None)])
 
 
-def evaluate_music(dataset, predictions_dir: Path, frame_duration: float) -> dict:
-    """Frame-level music detection metrics, pooled over the test regions of a dataset."""
+def music_metrics(dataset, hypotheses: dict, frame_duration: float) -> dict:
+    """Frame-level music detection metrics, pooled over the test regions of a dataset.
+
+    ``hypotheses`` maps each file of the dataset to its predicted music segments.
+    """
     from datasets import merge_segments
 
     tp = fp = fn = 0
     for item in dataset.items():
-        hypothesis = merge_segments(read_predictions(predictions_dir / f"{item.uri}.csv", MUSIC_LABELS))
+        hypothesis = merge_segments(hypotheses[item.uri])
         for start, stop in item.uem:
             times = start + (np.arange(int((stop - start) / frame_duration)) + 0.5) * frame_duration
             ref, hyp = _inside(times, item.reference), _inside(times, hypothesis)
@@ -96,6 +102,11 @@ def evaluate_music(dataset, predictions_dir: Path, frame_duration: float) -> dic
     recall = tp / (tp + fn) if tp + fn else 0.0
     f1 = 2 * tp / (2 * tp + fp + fn) if tp + fp + fn else 0.0
     return {"precision": precision, "recall": recall, "fmeasure": f1}
+
+
+def evaluate_music(dataset, predictions_dir: Path, frame_duration: float) -> dict:
+    hypotheses = {item.uri: read_predictions(predictions_dir / f"{item.uri}.csv", MUSIC_LABELS) for item in dataset.items()}
+    return music_metrics(dataset, hypotheses, frame_duration)
 
 
 def fmt(value) -> str:

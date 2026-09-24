@@ -2,3 +2,5 @@
 logs/
 predictions/
 __pycache__/
+# Frame scores of panns/yamnet, only needed by tune_thresholds.py
+*.scores.npz

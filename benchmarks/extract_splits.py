@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-"""Extract the test regions of the music datasets from the feather files used for training.
+"""Extract the test and dev regions of the music datasets from the feather files used for training.
 
-This documents how ``splits/*_test.csv`` were produced; it is not needed to run the
+This documents how ``splits/*_{test,dev}.csv`` were produced; it is not needed to run the
 evaluation. The feather files (internal to INA) contain one row per annotated segment,
-with the subset (train/dev/test) it was assigned to. Contiguous test rows of a file are
-merged into regions, written as ``file,start,stop`` (seconds).
+with the subset (train/dev/test) it was assigned to. Contiguous rows of a file are merged
+into regions, written as ``file,start,stop`` (seconds). The dev regions are only used to
+tune the decision threshold of the systems that need one.
 
 Usage:
     python extract_splits.py /path/to/datasets/dir
@@ -23,9 +24,9 @@ DATASETS = {
 COLUMNS = ["subset", "audio_file", "audio_sample_rate", "audio_frames_start", "audio_frames_stop"]
 
 
-def test_regions(path: Path):
+def subset_regions(path: Path, subset: str):
     df = feather.read_table(path, columns=COLUMNS, memory_map=True).to_pandas()
-    df = df[df.subset == "test"].sort_values(["audio_file", "audio_frames_start"])
+    df = df[df.subset == subset].sort_values(["audio_file", "audio_frames_start"])
     regions = []
     for audio_file, rows in df.groupby("audio_file", sort=True):
         sample_rate = int(rows.audio_sample_rate.iloc[0])
@@ -48,9 +49,9 @@ def main():
     args = parser.parse_args()
 
     args.output_dir.mkdir(exist_ok=True)
-    for name, filename in DATASETS.items():
-        regions = test_regions(args.datasets_dir / filename)
-        output = args.output_dir / f"{name}_test.csv"
+    for (name, filename), subset in ((d, s) for d in DATASETS.items() for s in ("test", "dev")):
+        regions = subset_regions(args.datasets_dir / filename, subset)
+        output = args.output_dir / f"{name}_{subset}.csv"
         with open(output, "w") as f:
             f.write("file,start,stop\n")
             for file, start, stop in regions:

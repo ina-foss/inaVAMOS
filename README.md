@@ -155,8 +155,9 @@ with the InaGVAD evaluation code (0.3 s collar):
 |--------|----------|-----------|--------|----|
 | **inaVAMOS** | **96.5** | **98.0** | 96.2 | **97.1** |
 | [inaSpeechSegmenter](https://github.com/ina-foss/inaSpeechSegmenter) | 93.0 | 91.8 | 97.0 | 94.3 |
-| [pyannote (segmentation-3.0)](https://github.com/pyannote/pyannote-audio) | 86.4 | 82.0 | **98.9** | 89.7 |
+| [pyannote (segmentation-3.0)](https://huggingface.co/pyannote/segmentation-3.0) | 86.4 | 82.0 | **98.9** | 89.7 |
 | [pyannote 2.1 (voice-activity-detection)](https://huggingface.co/pyannote/voice-activity-detection) | 88.8 | 85.0 | 98.8 | 91.4 |
+| [Silero VAD](https://github.com/snakers4/silero-vad) (v6) | 93.9 | 92.5 | 97.7 | 95.0 |
 
 ### Music detection
 
@@ -168,28 +169,39 @@ The global F1 is the average over the three datasets:
 
 | System | Mirex2015 | OpenBMAT | Seyerlehner | Global |
 |--------|-----------|----------|-------------|--------|
-| **inaVAMOS** | **96.5** | **89.9** | **92.2** | **92.9** |
+| **inaVAMOS** | **96.5** | **89.9** | 92.2 | **92.9** |
 | inaSpeechSegmenter | 92.5 | 45.4 | 65.4 | 67.8 |
+| [PANNs](https://github.com/qiuqiangkong/panns_inference) (CNN14, AudioSet) | 95.2 | 85.6 | **93.1** | 91.3 |
+| [YAMNet](https://www.kaggle.com/models/google/yamnet) (AudioSet) | **96.5** | 83.8 | 90.7 | 90.3 |
 
 The music model of inaVAMOS was trained on the training subsets of these datasets
-(the evaluated test subsets were held out). inaSpeechSegmenter labels speech over music
-as speech only, which lowers its music recall on datasets with background music.
-pyannote does not detect music.
+(the evaluated test subsets were held out). PANNs and YAMNet are AudioSet taggers: a
+frame is music when the score of their "Music" class exceeds a threshold, tuned on the
+dev subsets of these datasets. inaSpeechSegmenter labels speech over music as speech
+only, which lowers its music recall on datasets with background music. pyannote and
+Silero do not detect music.
 
 These results can be reproduced with the scripts of the [`benchmarks`](https://github.com/ina-foss/inaVAMOS/blob/main/benchmarks) directory.
 
 ### Speed
 
 Processing time of the InaGVAD test set (3h37 of audio, 217 files of one minute) on a
-laptop GPU (NVIDIA RTX 3080 Laptop, Intel Core i9-11950H), including audio decoding and
-excluding model loading (best of two runs):
+laptop (NVIDIA RTX 3080 Laptop GPU, Intel Core i9-11950H CPU), including audio decoding
+and excluding model loading (best of two consecutive runs). Silero VAD is designed for
+CPU and runs on CPU:
 
-| System | Total | Per hour of audio | RTF |
-|--------|-------|-------------------|-----------------------|
-| **inaVAMOS** (speech + music) | 53 s | 14 s | 249× |
-| inaSpeechSegmenter | 264 s | 72 s | 50× |
-| pyannote (segmentation-3.0, speech only) | 38 s | 10 s | 345× |
-| pyannote 2.1 (voice-activity-detection, speech only) | 41 s | 11 s | 324× |
+| System | Task | Device | Total | Per hour of audio | RTF |
+|--------|------|--------|-------|-------------------|-----|
+| **inaVAMOS** | speech + music | GPU | 51 s | 14 s | 257× |
+| inaSpeechSegmenter | speech + music | GPU | 167 s | 46 s | 79× |
+| pyannote (segmentation-3.0) | speech | GPU | 39 s | 11 s | 337× |
+| pyannote 2.1 (voice-activity-detection) | speech | GPU | 41 s | 11 s | 322× |
+| Silero VAD | speech | CPU | 98 s | 27 s | 134× |
+| PANNs (CNN14) | music | GPU | 32 s | 9 s | 412× |
+| YAMNet | music | GPU | 19 s | 5 s | 679× |
+
+On a laptop CPU, inaVAMOS is about 30 times faster than real time (an hour of audio in
+about 2 minutes).
 
 ## Development
 
