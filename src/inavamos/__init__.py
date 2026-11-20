@@ -4,6 +4,6 @@ from .audio import load_audio
 from .models import DETECTORS, ModelAccessError
 from .segmenter import Result, Segment, Segmenter
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = ["Segmenter", "Segment", "Result", "load_audio", "DETECTORS", "ModelAccessError", "__version__"]

@@ -23,6 +23,14 @@ def build_parser() -> argparse.ArgumentParser:
             "inaVAMOS (Voice And Music Open Segmenter): speech (voice activity) and music "
             "detection in audio and video files, using SSL-based models from INA (https://huggingface.co/ina-foss)."
         ),
+        epilog=(
+            "Detailed description of this tool and the models used are presented in the following study: "
+            "Pelloin, V., Bekkali, L., Dehak, R., & Doukhan, D. (2026). "
+            "Data Selection Effects on Self-Supervised Learning of Audio Representations for French Audiovisual Broadcasts. "
+            "In Proceedings of the Fifteenth Language Resources and Evaluation Conference (LREC 2026) (pp. 10221–10232). "
+            "European Language Resources Association (ELRA). https://doi.org/10.63317/4kdn23nttrh4. "
+            "Please cite this publication if you use this tool in your research."
+        )
     )
     parser.add_argument("-i", "--input", nargs="+", required=True, help="media files to process (any format read by ffmpeg)")
     parser.add_argument(
